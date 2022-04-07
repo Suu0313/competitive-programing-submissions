@@ -1,68 +1,70 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-#include "ModInt"
 
 int main() {
-  int t; cin >> t;
-  while(t--){
+  int T; cin >> T;
+  while(T--){
     int n, m; cin >> n >> m;
-    int s, t; cin >> s >> t; --s; --t;
+    int h = 100;
+    vector<int> a(n); for(auto&e : a) cin >> e;
 
-    vector<vector<int>> g(n);
-    while(m--){
-      int u, v; cin >> u >> v; --u; --v;
-      g[u].push_back(v);
-      g[v].push_back(u);
+    vector<vector<tuple<int,int,int>>> qs(n);
+    for(int i = 0; i < m; ++i){
+      int e, t, p; cin >> e >> t >> p; --e;
+      qs[e].emplace_back(i, t, p);
     }
 
-    vector<int> dist(n, -1);
-    dist[s] = 0;
-    {
-      queue<int> qu;
-      for(qu.push(s); !qu.empty(); qu.pop()){
-        int v = qu.front();
+    constexpr int64_t inf = numeric_limits<int64_t>::max()/3;
 
-        for(auto&u : g[v]){
-          if(dist[u] >= 0) continue;
-          dist[u] = dist[v] + 1;
-          qu.push(u);
-        }
-      }
-    }
+    auto f = [&]{
+      vector<int> res;
+      int nt = 0;
 
-    vector dp(2, vector(n, mint(0)));
-    vector seen(2, vector(n, 0));
-    dp[0][s] = 1;
+      for(int i = 0; i < n; ++i){
+        int l = int(qs[i].size());
+        vector dp(l+1, vector(h+1, inf));
+        vector pre(l+1, vector(h+1, -1));
+        dp[0][0] = 0;
 
-    queue<pair<int,int>> qu;
-    for(qu.emplace(s, 0); !qu.empty(); qu.pop()){
-      auto[v, c] = qu.front();
+        for(int j = 0; j < l; ++j){
+          auto[q, t, p] = qs[i][j];
 
-      if(seen[c][v]) continue;
-      seen[c][v] = 1;
-
-      for(auto&u : g[v]){
-        int d = dist[u] - dist[v];
-
-        if(c == 0){
-          if(d == 1){
-            dp[0][u] += dp[0][v];
-            qu.emplace(u, 0);
-          }
-          if(d == 0){
-            dp[1][u] += dp[0][v];
-            qu.emplace(u, 1);
-          }
-        }else{
-          if(d == 1){
-            dp[1][u] += dp[1][v];
-            qu.emplace(u, 1);
+          for(int k = 0; k <= h; ++k){
+            dp[j+1][k] = min(dp[j+1][k], dp[j][k]);
+            
+            if(dp[j+1][min(h, k+p)] > dp[j][k]+t){
+              dp[j+1][min(h, k+p)] = dp[j][k]+t;
+              pre[j+1][min(h, k+p)] = k;
+            }
           }
         }
-      }
-    }
 
-    cout << dp[0][t] + dp[1][t] << "\n";
+        if(dp[l][h]+nt > a[i]){
+          cout << -1 << "\n";
+          return 0;
+        }
+        nt += dp[l][h];
+
+        int nk = h;
+
+        for(int j = l-1; j >= 0; --j){
+          auto[q, t, p] = qs[i][j];
+
+          if(dp[j][nk] == dp[j+1][nk]) continue;
+
+          assert(pre[j+1][nk] >= 0);
+          nk = pre[j+1][nk];
+          res.push_back(q + 1);
+        }
+      }
+
+      cout << res.size() << "\n";
+      for(auto&e : res) cout << e << " ";
+      cout << "\n";
+      return 0;
+    };
+
+    f();
   }
 }
